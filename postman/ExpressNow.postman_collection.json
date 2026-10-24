@@ -1,0 +1,1581 @@
+{
+  "info": {
+    "_postman_id": "87f017a9-3c00-4ec8-9b46-bd1499c06316",
+    "name": "ExpressNow - Microservicios",
+    "description": "Pruebas de los 4 microservicios de ExpressNow. Ejecutar las carpetas en orden (o la colección completa con el Runner): cada request guarda en variables los ids que usan los siguientes. Incluye casos exitosos y de error (400, 401, 404, 409).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. ms-usuarios",
+      "item": [
+        {
+          "name": "Crear cliente (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{usuariosUrl}}/api/v1/usuarios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rut\": \"{{rutCliente}}\",\n  \"nombre\": \"Camila\",\n  \"apellido\": \"Fuentes\",\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"Clave2026!\",\n  \"telefono\": \"+56912345678\",\n  \"tipo\": \"CLIENTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rut = () => (10000000 + Math.floor(Math.random() * 89999999)) + \"-\" + Math.floor(Math.random() * 10);",
+                  "pm.collectionVariables.set(\"rutCliente\", rut());",
+                  "pm.collectionVariables.set(\"emailCliente\", \"cliente\" + Date.now() + \"@expressnow.cl\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"Devuelve id y no expone la contraseña\", () => { pm.expect(b.id).to.be.a(\"number\"); pm.expect(b).to.not.have.property(\"passwordHash\"); });",
+                  "pm.test(\"Header Location\", () => pm.response.to.have.header(\"Location\"));",
+                  "pm.collectionVariables.set(\"clienteId\", b.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear usuario inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{usuariosUrl}}/api/v1/usuarios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rut\": \"123\",\n  \"nombre\": \"\",\n  \"apellido\": \"Fuentes\",\n  \"email\": \"no-es-un-email\",\n  \"password\": \"corta\",\n  \"tipo\": \"CLIENTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Indica los campos con error\", () => { const d = pm.response.json().detalles; pm.expect(d).to.have.property(\"rut\"); pm.expect(d).to.have.property(\"email\"); pm.expect(d).to.have.property(\"password\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear usuario con email duplicado (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{usuariosUrl}}/api/v1/usuarios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rut\": \"{{rutOtro}}\",\n  \"nombre\": \"Otra\",\n  \"apellido\": \"Persona\",\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"Clave2026!\",\n  \"tipo\": \"CLIENTE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rut = () => (10000000 + Math.floor(Math.random() * 89999999)) + \"-\" + Math.floor(Math.random() * 10);",
+                  "pm.collectionVariables.set(\"rutOtro\", rut());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar usuarios (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{usuariosUrl}}/api/v1/usuarios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Es una lista\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar solo clientes (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{usuariosUrl}}/api/v1/usuarios?tipo=CLIENTE"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Todos son CLIENTE\", () => pm.response.json().forEach(u => pm.expect(u.tipo).to.eql(\"CLIENTE\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener cliente por id (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/{{clienteId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener usuario inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"Mensaje de error\", () => pm.expect(pm.response.json().mensaje).to.include(\"no existe\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar cliente (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/{{clienteId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Camila Andrea\",\n  \"apellido\": \"Fuentes\",\n  \"email\": \"{{emailCliente}}\",\n  \"telefono\": \"+56987654321\",\n  \"activo\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Nombre actualizado\", () => pm.expect(pm.response.json().nombre).to.eql(\"Camila Andrea\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar dirección (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/{{clienteId}}/direcciones",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"calle\": \"Av. Providencia\",\n  \"numero\": \"1234\",\n  \"depto\": \"Of. 501\",\n  \"comuna\": \"Providencia\",\n  \"region\": \"Metropolitana\",\n  \"principal\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"direccionId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar direcciones (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/{{clienteId}}/direcciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login correcto (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"Clave2026!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Tipo CLIENTE\", () => pm.expect(pm.response.json().tipo).to.eql(\"CLIENTE\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login con contraseña incorrecta (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. ms-transportistas",
+      "item": [
+        {
+          "name": "Crear transportista (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{transportistasUrl}}/api/v1/transportistas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rut\": \"{{rutTransportista}}\",\n  \"nombre\": \"Pedro Soto\",\n  \"telefono\": \"+56922223333\",\n  \"comunaBase\": \"Providencia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const rut = () => (10000000 + Math.floor(Math.random() * 89999999)) + \"-\" + Math.floor(Math.random() * 10);",
+                  "pm.collectionVariables.set(\"rutTransportista\", rut());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"transportistaId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar vehículo (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/{{transportistaId}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patente\": \"{{patente}}\",\n  \"tipo\": \"FURGON\",\n  \"marca\": \"Peugeot\",\n  \"modelo\": \"Partner\",\n  \"capacidadKg\": 800\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const L = \"BCDFGHJKLPRSTVWXYZ\";",
+                  "let p = \"\";",
+                  "for (let i = 0; i < 4; i++) p += L[Math.floor(Math.random() * L.length)];",
+                  "pm.collectionVariables.set(\"patente\", p + (10 + Math.floor(Math.random() * 89)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"vehiculoId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar vehículo inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/{{transportistaId}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patente\": \"???\",\n  \"tipo\": \"FURGON\",\n  \"capacidadKg\": -5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agregar vehículo con tipo inexistente (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/{{transportistaId}}/vehiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patente\": \"ZZZZ11\",\n  \"tipo\": \"AVION\",\n  \"capacidadKg\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar transportistas disponibles (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{transportistasUrl}}/api/v1/transportistas?disponible=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener transportista (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/{{transportistaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Tiene 1 vehículo\", () => pm.expect(pm.response.json().vehiculos.length).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar transportista (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/{{transportistaId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rut\": \"{{rutTransportista}}\",\n  \"nombre\": \"Pedro Soto Muñoz\",\n  \"telefono\": \"+56922223333\",\n  \"comunaBase\": \"Providencia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar disponibilidad (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/{{transportistaId}}/disponibilidad",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"disponible\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener transportista inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/999999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. ms-envios",
+      "item": [
+        {
+          "name": "Crear envío / solicitud de retiro (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios",
+            "description": "Crea el envío y llama a ms-transportistas (con Circuit Breaker). Si ms-transportistas está apagado, el envío queda PENDIENTE_ASIGNACION.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"direccionOrigen\": \"Av. Providencia 1234, Of. 501\",\n  \"comunaOrigen\": \"Providencia\",\n  \"direccionDestino\": \"Los Carrera 456\",\n  \"comunaDestino\": \"Concepción\",\n  \"nombreDestinatario\": \"Juan Pérez\",\n  \"telefonoDestinatario\": \"+56933334444\",\n  \"fechaRetiro\": \"{{fechaRetiro}}\",\n  \"paquetes\": [\n    {\n      \"descripcion\": \"Libros\",\n      \"pesoKg\": 2.4,\n      \"largoCm\": 30,\n      \"anchoCm\": 20,\n      \"altoCm\": 15,\n      \"fragil\": false\n    },\n    {\n      \"descripcion\": \"Florero de vidrio\",\n      \"pesoKg\": 1.1,\n      \"largoCm\": 25,\n      \"anchoCm\": 25,\n      \"altoCm\": 40,\n      \"fragil\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const f = d => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set(\"fechaRetiro\", f(2));",
+                  "pm.collectionVariables.set(\"fechaReprogramada\", f(7));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set(\"envioId\", b.id);",
+                  "pm.collectionVariables.set(\"codigoSeguimiento\", b.codigoSeguimiento);",
+                  "pm.test(\"Asignado a un transportista (requiere ms-transportistas arriba)\", () => { pm.expect(b.estado).to.eql(\"ASIGNADO\"); pm.expect(b.transportistaId).to.be.a(\"number\"); });",
+                  "pm.test(\"Costo: 2990 + 990 x 4 kg\", () => pm.expect(b.costo).to.eql(6950));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear envío inválido (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": null,\n  \"direccionOrigen\": \"\",\n  \"comunaOrigen\": \"Providencia\",\n  \"direccionDestino\": \"Los Carrera 456\",\n  \"comunaDestino\": \"Concepción\",\n  \"nombreDestinatario\": \"Juan\",\n  \"fechaRetiro\": \"2020-01-01\",\n  \"paquetes\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Errores por campo\", () => { const d = pm.response.json().detalles; pm.expect(d).to.have.property(\"fechaRetiro\"); pm.expect(d).to.have.property(\"paquetes\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener envío (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener envío por código (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{enviosUrl}}/api/v1/envios/codigo/{{codigoSeguimiento}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar envíos del cliente (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{enviosUrl}}/api/v1/envios?clienteId={{clienteId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar destino (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"direccionDestino\": \"O'Higgins 789\",\n  \"comunaDestino\": \"Concepción\",\n  \"nombreDestinatario\": \"Juan Pérez\",\n  \"telefonoDestinatario\": \"+56933334444\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reprogramar retiro (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioId}}/reprogramar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fechaRetiro\": \"{{fechaReprogramada}}\",\n  \"motivo\": \"No habrá nadie en la oficina\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Fecha cambiada\", () => pm.expect(pm.response.json().fechaRetiro).to.eql(pm.collectionVariables.get(\"fechaReprogramada\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transición de estado inválida (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioId}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"ENTREGADO\",\n  \"comentario\": \"Intento saltar estados\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar envío como RETIRADO (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioId}}/estado",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"RETIRADO\",\n  \"comentario\": \"Paquete retirado por el transportista\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar envío ya retirado (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioId}}/cancelar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Me arrepentí\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial del envío (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioId}}/historial"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Tiene varios cambios\", () => pm.expect(pm.response.json().length).to.be.above(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Estado inexistente (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{enviosUrl}}/api/v1/envios?estado=PERDIDO"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. ms-seguimiento",
+      "item": [
+        {
+          "name": "Abrir seguimiento del envío (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"envioId\": {{envioId}},\n  \"codigoSeguimiento\": \"{{codigoSeguimiento}}\",\n  \"ubicacion\": \"Providencia\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"seguimientoId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir seguimiento duplicado (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"envioId\": {{envioId}},\n  \"codigoSeguimiento\": \"{{codigoSeguimiento}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar evento EN_RUTA (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/{{seguimientoId}}/eventos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_RUTA\",\n  \"descripcion\": \"En camino a Concepción\",\n  \"ubicacion\": \"Ruta 5 Sur, Talca\",\n  \"latitud\": -35.4264,\n  \"longitud\": -71.6554\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const ev = pm.response.json().eventos;",
+                  "pm.collectionVariables.set(\"eventoId\", ev[ev.length - 1].id);",
+                  "pm.test(\"Estado actual EN_RUTA\", () => pm.expect(pm.response.json().estadoActual).to.eql(\"EN_RUTA\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar evento con coordenadas inválidas (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/{{seguimientoId}}/eventos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_RUTA\",\n  \"descripcion\": \"GPS malo\",\n  \"latitud\": -120,\n  \"longitud\": 500\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Corregir evento (200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/{{seguimientoId}}/eventos/{{eventoId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"En camino a Concepción (sin retrasos)\",\n  \"ubicacion\": \"Ruta 5 Sur, Talca\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar evento ENTREGADO (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/{{seguimientoId}}/eventos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"ENTREGADO\",\n  \"descripcion\": \"Recibido por Juan Pérez\",\n  \"ubicacion\": \"O'Higgins 789, Concepción\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evento después de entregado (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/{{seguimientoId}}/eventos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_RUTA\",\n  \"descripcion\": \"No debería permitirse\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tracking público por código (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/codigo/{{codigoSeguimiento}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Entregado\", () => pm.expect(pm.response.json().estadoActual).to.eql(\"ENTREGADO\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Línea de tiempo de eventos (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/{{seguimientoId}}/eventos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"3 eventos\", () => pm.expect(pm.response.json().length).to.eql(3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Código inexistente (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/codigo/EXN-NOEXISTE"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Eliminaciones (DELETE)",
+      "item": [
+        {
+          "name": "Crear envío para cancelar (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"direccionOrigen\": \"Av. Providencia 1234, Of. 501\",\n  \"comunaOrigen\": \"Providencia\",\n  \"direccionDestino\": \"Los Carrera 456\",\n  \"comunaDestino\": \"Concepción\",\n  \"nombreDestinatario\": \"Juan Pérez\",\n  \"telefonoDestinatario\": \"+56933334444\",\n  \"fechaRetiro\": \"{{fechaRetiro}}\",\n  \"paquetes\": [\n    {\n      \"descripcion\": \"Libros\",\n      \"pesoKg\": 2.4,\n      \"largoCm\": 30,\n      \"anchoCm\": 20,\n      \"altoCm\": 15,\n      \"fragil\": false\n    },\n    {\n      \"descripcion\": \"Florero de vidrio\",\n      \"pesoKg\": 1.1,\n      \"largoCm\": 25,\n      \"anchoCm\": 25,\n      \"altoCm\": 40,\n      \"fragil\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const f = d => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);",
+                  "pm.collectionVariables.set(\"fechaRetiro\", f(2));",
+                  "pm.collectionVariables.set(\"fechaReprogramada\", f(7));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"envioCancelarId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar envío (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioCancelarId}}/cancelar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Ya no necesito el envío\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"CANCELADO\", () => pm.expect(pm.response.json().estado).to.eql(\"CANCELADO\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar envío cancelado (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioCancelarId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar envío no cancelado (409)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{enviosUrl}}/api/v1/envios/{{envioId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar asignaciones del transportista (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{transportistasUrl}}/api/v1/asignaciones?transportistaId={{transportistaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar transportista con asignaciones activas (409)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/{{transportistaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar vehículo (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{transportistasUrl}}/api/v1/transportistas/{{transportistaId}}/vehiculos/{{vehiculoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar seguimiento (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{seguimientoUrl}}/api/v1/seguimientos/{{seguimientoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar dirección (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/{{clienteId}}/direcciones/{{direccionId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar usuario (204)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/{{clienteId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener usuario eliminado (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{usuariosUrl}}/api/v1/usuarios/{{clienteId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "usuariosUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "enviosUrl",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "transportistasUrl",
+      "value": "http://localhost:8083"
+    },
+    {
+      "key": "seguimientoUrl",
+      "value": "http://localhost:8084"
+    }
+  ]
+}
