@@ -1,0 +1,12 @@
+package cl.duoc.expressnow.usuarios.exception;
+
+/**
+ * Se lanza cuando una operación viola una regla de negocio o genera un
+ * conflicto con el estado actual del recurso. Se traduce a HTTP 409.
+ */
+public class ReglaNegocioException extends RuntimeException {
+
+    public ReglaNegocioException(String mensaje) {
+        super(mensaje);
+    }
+}
