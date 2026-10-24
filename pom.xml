@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  POM agregador de ExpressNow.
+  No define dependencias: solo agrupa los 4 microservicios para poder
+  compilarlos, testearlos y empaquetarlos todos con un solo comando:
+
+      mvn clean install
+
+  Cada microservicio es un proyecto Spring Boot independiente (tiene su
+  propio pom.xml con su propio parent), por lo que también se puede
+  compilar y ejecutar por separado entrando a su carpeta.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>cl.duoc.expressnow</groupId>
+    <artifactId>expressnow-microservicios</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>ExpressNow - Microservicios</name>
+    <description>Agregador de los microservicios de la plataforma de envíos ExpressNow</description>
+
+    <modules>
+        <module>ms-usuarios</module>
+        <module>ms-envios</module>
+        <module>ms-transportistas</module>
+        <module>ms-seguimiento</module>
+    </modules>
+</project>
