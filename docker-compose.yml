@@ -1,0 +1,23 @@
+# Base de datos MySQL local para desarrollo (alternativa a Amazon RDS).
+# Levantar con:   docker compose up -d
+# Al crearse el contenedor ejecuta database/01_esquemas_y_usuarios.sql
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: expressnow-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_local
+      TZ: America/Santiago
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./database/01_esquemas_y_usuarios.sql:/docker-entrypoint-initdb.d/01_esquemas_y_usuarios.sql:ro
+      - expressnow-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot_local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  expressnow-mysql-data:
